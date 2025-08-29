@@ -4,7 +4,7 @@ from sklearn.preprocessing import StandardScaler
 
 # File paths for artifacts
 SCALER_PATH = "artifacts/scaler.pkl"
-HOURLY_STATS_PATH = "artifacts/hourly_stats.pkl"
+HOUR_STATS_PATH = "artifacts/hourly_stats.pkl"
 
 def preprocess_training(df: pd.DataFrame) -> pd.DataFrame:
     """

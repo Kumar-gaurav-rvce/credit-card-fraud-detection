@@ -41,20 +41,21 @@ def download_from_s3():
     # 🔍 Debug: list all objects under prefix
     #st.write("📂 Listing available objects in S3 prefix:")
     response = s3.list_objects_v2(Bucket=BUCKET, Prefix="fraud-detection/models/")
+    '''
     if "Contents" in response:
         for obj in response["Contents"]:
             st.write(" -", obj["Key"])
     else:
         st.error("No objects found under fraud-detection/models/. Check your S3 path.")
         return
-
+    '''
     # Download artifacts
     for key, s3_key in S3_KEYS.items():
         if not os.path.exists(LOCAL_PATHS[key]):
             #st.write(f"⬇️ Downloading {s3_key} from S3...")
             try:
                 s3.download_file(BUCKET, s3_key, LOCAL_PATHS[key])
-                st.success(f"{key} downloaded to {LOCAL_PATHS[key]}")
+                #st.success(f"{key} downloaded to {LOCAL_PATHS[key]}")
             except Exception as e:
                 st.error(f"Failed to download {s3_key}: {e}")
 
