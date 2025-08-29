@@ -92,10 +92,10 @@ if submitted:
     transaction = pd.DataFrame([{"Amount": amount, "Time": time}])
 
     # Apply preprocessing
+    transaction = {"Amount": amount, "Time": time}
     transaction = preprocess_inference(transaction)
-
-    # Make prediction
     pred = model.predict(transaction)[0]
+
     prob = model.predict_proba(transaction)[0, 1]
 
     # Display result
