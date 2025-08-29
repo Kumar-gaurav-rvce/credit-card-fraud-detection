@@ -25,12 +25,10 @@ LOCAL_PATHS = {
 # ------------------- Helpers -------------------
 def download_from_s3():
     """Download model + preprocessing artifacts from S3 if not already present."""
-    # Load AWS credentials from Streamlit secrets
     aws_access_key = st.secrets["AWS_ACCESS_KEY_ID"]
     aws_secret_key = st.secrets["AWS_SECRET_ACCESS_KEY"]
     aws_region = st.secrets["AWS_DEFAULT_REGION"]
 
-    # Create boto3 client with these credentials
     s3 = boto3.client(
         "s3",
         aws_access_key_id=aws_access_key,
@@ -38,14 +36,28 @@ def download_from_s3():
         region_name=aws_region
     )
 
-    # Ensure local artifacts folder exists
     os.makedirs("artifacts", exist_ok=True)
 
+    # 🔍 Debug: list all objects under prefix
+    st.write("📂 Listing available objects in S3 prefix:")
+    response = s3.list_objects_v2(Bucket=BUCKET, Prefix="fraud-detection/models/")
+    if "Contents" in response:
+        for obj in response["Contents"]:
+            st.write(" -", obj["Key"])
+    else:
+        st.error("No objects found under fraud-detection/models/. Check your S3 path.")
+        return
+
+    # Download artifacts
     for key, s3_key in S3_KEYS.items():
         if not os.path.exists(LOCAL_PATHS[key]):
             st.write(f"⬇️ Downloading {s3_key} from S3...")
-            s3.download_file(BUCKET, s3_key, LOCAL_PATHS[key])
-            st.write(f"{key} downloaded to {LOCAL_PATHS[key]}")
+            try:
+                s3.download_file(BUCKET, s3_key, LOCAL_PATHS[key])
+                st.success(f"{key} downloaded to {LOCAL_PATHS[key]}")
+            except Exception as e:
+                st.error(f"Failed to download {s3_key}: {e}")
+
 
 @st.cache_resource
 def load_artifacts():
