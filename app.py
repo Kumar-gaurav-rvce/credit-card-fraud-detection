@@ -11,7 +11,7 @@ from preprocessing import preprocess_inference
 BUCKET = "ml-rvce-us-east-1"
 
 S3_KEYS = {
-    "model": "fraud-detection/models/model.pkl",
+    "model": "fraud-detection/models/fraud_model.pkl",
     "scaler": "fraud-detection/models/scaler.pkl",
     "hourly_stats": "fraud-detection/models/hourly_stats.pkl"
 }
