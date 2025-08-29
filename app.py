@@ -24,7 +24,18 @@ LOCAL_PATHS = {
 # ------------------- Helpers -------------------
 def download_from_s3():
     """Download model + preprocessing artifacts from S3 if not already present."""
-    s3 = boto3.client("s3")
+    # Load AWS credentials from Streamlit secrets
+    aws_access_key = st.secrets["AWS_ACCESS_KEY_ID"]
+    aws_secret_key = st.secrets["AWS_SECRET_ACCESS_KEY"]
+    aws_region = st.secrets["AWS_DEFAULT_REGION"]
+
+    # Create boto3 client with these credentials
+    s3 = boto3.client(
+        "s3",
+        aws_access_key_id=aws_access_key,
+        aws_secret_access_key=aws_secret_key,
+        region_name=aws_region
+    )
     for key, s3_key in ARTIFACTS.items():
         if not os.path.exists(LOCAL_PATHS[key]):
             s3.download_file(BUCKET, s3_key, LOCAL_PATHS[key])
