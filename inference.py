@@ -2,7 +2,7 @@ import joblib
 import pandas as pd
 
 # Load model
-model = joblib.load("fraud_model.pkl")  # or download from S3
+model = joblib.load("model.pkl")  # or download from S3
 
 def predict_transaction(transaction_dict):
     """
