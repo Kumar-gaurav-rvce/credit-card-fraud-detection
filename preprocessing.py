@@ -5,6 +5,7 @@ from sklearn.preprocessing import StandardScaler
 # File paths for artifacts
 SCALER_PATH = "artifacts/scaler.pkl"
 HOUR_STATS_PATH = "artifacts/hourly_stats.pkl"
+PCA_PATH = "artifacts/pca.pkl"
 
 def preprocess_training(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -33,24 +34,25 @@ def preprocess_training(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def preprocess_inference(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess_inference(transaction: pd.DataFrame) -> pd.DataFrame:
     """
     Preprocessing pipeline for inference:
     - Load scaler + hourly stats
     - Apply same transformations as training
     """
-    # Load scaler + stats
+    # Load preprocessing objects
     scaler = joblib.load(SCALER_PATH)
     hourly_means = joblib.load(HOUR_STATS_PATH)
-    
-    # Apply scaler
-    df['Amount_Scaled'] = scaler.transform(df[['Amount']])
-    
-    # Extract Hour
-    df['Hour'] = (df['Time'] // 3600) % 24
-    
-    # Map stats
-    df['MeanAmountByHour'] = df['Hour'].map(hourly_means).fillna(0)
-    df['Amount_vs_HourlyMean'] = df['Amount'] / (df['MeanAmountByHour'] + 1e-6)
-    
-    return df
+    pca = joblib.load(PCA_PATH)
+
+    # Scale
+    transaction_scaled = scaler.transform(transaction)
+
+    # PCA transform → produces V1–V28
+    transaction_pca = pca.transform(transaction_scaled)
+
+    # Convert to DataFrame with correct feature names
+    feature_names = [f"V{i}" for i in range(1, 29)]
+    transaction_final = pd.DataFrame(transaction_pca, columns=feature_names)
+
+    return transaction_final
