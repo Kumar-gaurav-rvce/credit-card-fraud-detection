@@ -9,16 +9,17 @@ from preprocessing import preprocess_inference
 
 # ------------------- S3 Settings -------------------
 BUCKET = "ml-rvce-us-east-1"
-ARTIFACTS = {
-    "model": "fraud-detection/models/fraud_model.pkl",
+
+S3_KEYS = {
+    "model": "fraud-detection/models/model.pkl",
     "scaler": "fraud-detection/models/scaler.pkl",
-    "hourly": "fraud-detection/models/hourly_stats.pkl"
+    "hourly_stats": "fraud-detection/models/hourly_stats.pkl"
 }
 
 LOCAL_PATHS = {
-    "model": "fraud_model.pkl",
-    "scaler": "scaler.pkl",
-    "hourly": "hourly_stats.pkl"
+    "model": "artifacts/model.pkl",
+    "scaler": "artifacts/scaler.pkl",
+    "hourly_stats": "artifacts/hourly_stats.pkl"
 }
 
 # ------------------- Helpers -------------------
@@ -36,23 +37,29 @@ def download_from_s3():
         aws_secret_access_key=aws_secret_key,
         region_name=aws_region
     )
-    for key, s3_key in ARTIFACTS.items():
+
+    # Ensure local artifacts folder exists
+    os.makedirs("artifacts", exist_ok=True)
+
+    for key, s3_key in S3_KEYS.items():
         if not os.path.exists(LOCAL_PATHS[key]):
+            st.write(f"⬇️ Downloading {s3_key} from S3...")
             s3.download_file(BUCKET, s3_key, LOCAL_PATHS[key])
+            st.write(f"{key} downloaded to {LOCAL_PATHS[key]}")
 
 @st.cache_resource
 def load_artifacts():
     """Ensure artifacts are downloaded and return loaded objects."""
     download_from_s3()
     model = joblib.load(LOCAL_PATHS["model"])
-    # Preprocessing artifacts will be loaded inside preprocess_inference
+    # scaler + hourly_stats are handled in preprocess_inference
     return model
 
 # ------------------- Load Model -------------------
 model = load_artifacts()
 
 # ------------------- Streamlit UI -------------------
-st.title("💳 Fraud Detection App (S3-powered)")
+st.title("Fraud Detection App (S3-powered)")
 
 st.markdown(
     """
