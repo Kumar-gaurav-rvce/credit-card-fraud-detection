@@ -39,7 +39,7 @@ def download_from_s3():
     os.makedirs("artifacts", exist_ok=True)
 
     # 🔍 Debug: list all objects under prefix
-    st.write("📂 Listing available objects in S3 prefix:")
+    #st.write("📂 Listing available objects in S3 prefix:")
     response = s3.list_objects_v2(Bucket=BUCKET, Prefix="fraud-detection/models/")
     if "Contents" in response:
         for obj in response["Contents"]:
@@ -51,7 +51,7 @@ def download_from_s3():
     # Download artifacts
     for key, s3_key in S3_KEYS.items():
         if not os.path.exists(LOCAL_PATHS[key]):
-            st.write(f"⬇️ Downloading {s3_key} from S3...")
+            #st.write(f"⬇️ Downloading {s3_key} from S3...")
             try:
                 s3.download_file(BUCKET, s3_key, LOCAL_PATHS[key])
                 st.success(f"{key} downloaded to {LOCAL_PATHS[key]}")
