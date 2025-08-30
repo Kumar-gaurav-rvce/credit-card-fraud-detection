@@ -28,24 +28,32 @@ def preprocess_training(df):
 
     return df
 
-def preprocess_inference(transaction):
+def preprocess_inference(transaction_df):
     """
-    Preprocess a transaction for inference
-    - transaction: dict (single transaction) OR pd.DataFrame (multiple rows)
+    Preprocess a transaction DataFrame or dict for inference.
+    Returns a 2D NumPy array suitable for model.predict.
     """
-    # Load scaler
-    scaler = joblib.load(SCALER_PATH)
 
-    # Single transaction dict
-    if isinstance(transaction, dict):
-        # Make a 2D array
-        features = [[transaction["Time"], transaction["Amount"]]]
-    else:
-        # Ensure transaction has same columns as training features
-        feature_cols = scaler.feature_names_in_  # requires sklearn >=1.0
-        features = transaction[feature_cols].values
+    scaler = joblib.load("artifacts/scaler.pkl")
+    
+    # Convert dict to DataFrame if needed
+    if isinstance(transaction_df, dict):
+        transaction_df = pd.DataFrame([transaction_df])
 
-    # Scale
-    features_scaled = scaler.transform(features)
-    return features_scaled
+    # Ensure columns match scaler's training columns
+    expected_cols = scaler.feature_names_in_  # sklearn stores feature names in 1.0+
+    missing_cols = set(expected_cols) - set(transaction_df.columns)
+    if missing_cols:
+        # Fill missing columns with zeros
+        for col in missing_cols:
+            transaction_df[col] = 0
+
+    # Reorder columns to match training
+    transaction_df = transaction_df[expected_cols]
+
+    # Scale features
+    features_scaled = scaler.transform(transaction_df)
+
+    return features_scaled  # 2D array, ready for model.predict
+
 
