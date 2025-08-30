@@ -1,40 +1,32 @@
-# app.py
-import streamlit as st
-import joblib
-import boto3
+#train .py
+import pandas as pd
 import os
-from preprocessing import preprocess_inference
+import joblib
+from sklearn.preprocessing import StandardScaler
+from xgboost import XGBClassifier
+from sklearn.model_selection import train_test_split
 
-BUCKET = "ml-rvce-us-east-1"
-MODEL_KEY = "fraud-detection/models/model.pkl"
-LOCAL_MODEL_PATH = "artifacts/model.pkl"
+# Load dataset
+df = pd.read_csv("creditcard.csv")
 
-# Ensure artifacts dir exists
+# Use only Time + Amount
+X = df[["Time", "Amount"]]
+y = df["Class"]
+
+# Scale
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# Train simple model
+model = XGBClassifier(use_label_encoder=False, eval_metric="logloss")
+model.fit(X_train, y_train)
+
+# Save
 os.makedirs("artifacts", exist_ok=True)
+joblib.dump(model, "artifacts/model.pkl")
+joblib.dump(scaler, "artifacts/scaler.pkl")
 
-# Download model from S3 if not already present
-s3 = boto3.client("s3")
-if not os.path.exists(LOCAL_MODEL_PATH):
-    s3.download_file(BUCKET, MODEL_KEY, LOCAL_MODEL_PATH)
-
-# Load model
-model = joblib.load(LOCAL_MODEL_PATH)
-
-st.title("Fraud Detection App (S3-powered)")
-st.write("Predict fraud using Amount + Time only")
-
-# Inputs
-amount = st.number_input("Transaction Amount", min_value=0.0, step=1.0)
-time = st.number_input("Transaction Time (seconds since start)", min_value=0, step=1)
-
-if st.button("Predict"):
-    transaction = {"Amount": amount, "Time": time}
-    X = preprocess_inference(transaction)
-
-    pred = model.predict(X)[0]
-    prob = model.predict_proba(X)[0, 1]
-
-    if pred == 1:
-        st.error(f"Fraudulent Transaction Detected (prob={prob:.2f})")
-    else:
-        st.success(f"Legitimate Transaction (prob={prob:.2f})")
+print("Saved model.pkl and scaler.pkl (2 features only)")
