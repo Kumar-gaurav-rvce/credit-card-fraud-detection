@@ -15,7 +15,7 @@ if uploaded_file is not None:
     st.write("Uploaded Data", df)
 
     try:
-        # preprocess to 2D numpy array
+        # Pass the DataFrame directly without wrapping in a list
         X = preprocess_inference(df)
         preds = model.predict(X)
         probs = model.predict_proba(X)[:, 1]
@@ -27,3 +27,4 @@ if uploaded_file is not None:
 
     except Exception as e:
         st.error(f"Error during prediction: {e}")
+
