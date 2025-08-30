@@ -1,4 +1,4 @@
-import joblib
+import joblib   # For saving/loading trained models and scalers
 from preprocessing import preprocess_inference
 
 # ----------------------------------------

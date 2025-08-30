@@ -1,5 +1,5 @@
 import pandas as pd
-import joblib
+import joblib # For saving/loading trained models and scalers
 from sklearn.preprocessing import StandardScaler
 
 SCALER_PATH = "artifacts/scaler.pkl"

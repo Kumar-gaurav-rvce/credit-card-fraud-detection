@@ -1,10 +1,26 @@
-import pandas as pd
-import joblib
-from preprocessing import preprocess_training
-from sklearn.model_selection import train_test_split
-from xgboost import XGBClassifier
-from imblearn.over_sampling import SMOTE
-from sklearn.metrics import classification_report
+# ----------------------------------------
+# Core Libraries
+# ----------------------------------------
+import pandas as pd              # For data manipulation and handling CSV files
+import joblib                    # For saving/loading trained models and scalers
+
+# ----------------------------------------
+# Custom Preprocessing Module
+# ----------------------------------------
+from preprocessing import preprocess_training   # Custom function for preprocessing training data
+
+# ----------------------------------------
+# Machine Learning Utilities
+# ----------------------------------------
+from sklearn.model_selection import train_test_split  # Splits dataset into train/test sets
+from xgboost import XGBClassifier                     # XGBoost classifier (optimized for tabular data)
+from imblearn.over_sampling import SMOTE              # SMOTE technique for handling class imbalance
+
+# ----------------------------------------
+# Model Evaluation
+# ----------------------------------------
+from sklearn.metrics import classification_report     # Generates precision, recall, f1-score, and support
+
 
 # ----------------------------------------
 # Paths
