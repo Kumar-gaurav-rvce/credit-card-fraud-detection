@@ -1,4 +1,6 @@
+#train .py
 import pandas as pd
+import os
 import joblib
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
@@ -23,7 +25,8 @@ model = XGBClassifier(use_label_encoder=False, eval_metric="logloss")
 model.fit(X_train, y_train)
 
 # Save
-joblib.dump(model, "model.pkl")
-joblib.dump(scaler, "scaler.pkl")
+os.makedirs("artifacts", exist_ok=True)
+joblib.dump(model, "artifacts/model.pkl")
+joblib.dump(scaler, "artifacts/scaler.pkl")
 
-print("✅ Saved model.pkl and scaler.pkl (2 features only)")
+print("Saved model.pkl and scaler.pkl (2 features only)")
