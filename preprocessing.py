@@ -1,38 +1,38 @@
-import joblib
-import numpy as np
-import os
-import boto3
+# preprocessing.py
 import pandas as pd
+import joblib
+from sklearn.preprocessing import StandardScaler
 
-BUCKET = "ml-rvce-us-east-1"
-SCALER_KEY = "fraud-detection/models/scaler.pkl"
-LOCAL_SCALER_PATH = "artifacts/scaler.pkl"
+SCALER_PATH = "artifacts/scaler.pkl"
 
-s3 = boto3.client("s3")
-
-def get_scaler():
-    os.makedirs("artifacts", exist_ok=True)
-    if not os.path.exists(LOCAL_SCALER_PATH):
-        s3.download_file(BUCKET, SCALER_KEY, LOCAL_SCALER_PATH)
-    scaler = joblib.load(LOCAL_SCALER_PATH)
-    return scaler
-
-def preprocess_inference(transaction):
+def preprocess_training(df):
     """
-    transaction: dict with keys 'Time' and 'Amount'
-    Returns: numpy array with shape (1, 30) matching training features
+    Preprocess the raw dataframe for training:
+    - Fill missing values (if any)
+    - Scale numeric columns
     """
-    # Fill missing features (V1-V28) with zeros or median values
-    v_features = {f"V{i}": 0.0 for i in range(1, 29)}
+    # Assuming raw CSV has 'Time', 'Amount', 'V1'..'V28', 'Class'
+    feature_cols = [c for c in df.columns if c != 'Class']
 
-    # Combine Time + Amount + V1-V28
-    all_features = {"Time": transaction["Time"], "Amount": transaction["Amount"], **v_features}
+    # Fill missing values
+    df[feature_cols] = df[feature_cols].fillna(0)
 
-    # Order features exactly as during training: V1–V28, Time, Amount
-    feature_order = [f"V{i}" for i in range(1, 29)] + ["Time", "Amount"]
-    X = np.array([[all_features[f] for f in feature_order]])
+    # Scale features
+    scaler = StandardScaler()
+    df[feature_cols] = scaler.fit_transform(df[feature_cols])
 
-    # Scale
-    scaler = get_scaler()
-    X_scaled = scaler.transform(X)
-    return X_scaled
+    # Save scaler for inference
+    joblib.dump(scaler, SCALER_PATH)
+    print("Scaler saved to", SCALER_PATH)
+
+    return df
+
+def preprocess_inference(transaction_df):
+    """
+    Preprocess a transaction dataframe for inference
+    - transaction_df: pd.DataFrame with same columns as training features
+    """
+    # Load scaler
+    scaler = joblib.load(SCALER_PATH)
+    features_scaled = scaler.transform(transaction_df)
+    return features_scaled

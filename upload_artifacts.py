@@ -6,7 +6,7 @@ BUCKET_NAME = "ml-rvce-us-east-1"
 S3_PREFIX = "fraud-detection/models/"   # path inside bucket
 
 # Local artifacts (after training)
-ARTIFACTS = ["fraud_model.pkl", "scaler.pkl"]
+ARTIFACTS = ["model.pkl", "scaler.pkl"]
 
 def upload_to_s3():
     s3 = boto3.client("s3")
