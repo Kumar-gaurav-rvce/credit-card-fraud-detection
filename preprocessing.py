@@ -16,30 +16,28 @@ def preprocess_inference(transaction_input):
     """
     # Convert input to DataFrame
     if isinstance(transaction_input, dict):
-        df = pd.DataFrame([transaction_input])  # single row
+        df = pd.DataFrame([transaction_input])
     elif isinstance(transaction_input, list):
-        df = pd.DataFrame(transaction_input)    # multiple rows
+        df = pd.DataFrame(transaction_input)
     elif isinstance(transaction_input, pd.DataFrame):
-        df = transaction_input.copy()          # already DataFrame
+        df = transaction_input.copy()
     else:
         raise ValueError("Input must be dict, list of dicts, or DataFrame")
 
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Ensure columns match scaler's feature names
+    # Make sure DataFrame has all features expected by the scaler
     feature_cols = getattr(scaler, "feature_names_in_", df.columns)
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0  # fill missing features
+            df[col] = 0
+
     df = df[feature_cols].fillna(0)
 
-    # Convert to 2D numpy array
+    # Convert to 2D array
     X = df.to_numpy()
-    # Ensure shape is exactly 2D (n_samples, n_features)
-    if X.ndim == 1:
-        X = X.reshape(1, -1)  # single row
-    elif X.ndim > 2:
-        X = X.reshape(X.shape[0], -1)  # flatten extra dimensions
-
+    # If somehow it ends up 3D, squeeze it
+    if X.ndim > 2:
+        X = np.squeeze(X, axis=0)
     return X
