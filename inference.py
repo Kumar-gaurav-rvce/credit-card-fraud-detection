@@ -1,16 +1,16 @@
-#inference.py
 import joblib
 import pandas as pd
+from preprocessing import preprocess_inference
 
-# Load model
-model = joblib.load("model.pkl")  # or download from S3
+MODEL_PATH = "artifacts/fraud_model.pkl"
+model = joblib.load(MODEL_PATH)
 
 def predict_transaction(transaction_dict):
     """
-    transaction_dict: {"Amount": 100, "Time": 123456, ...}
-    Returns: prediction (0=normal, 1=fraud) and probability
+    Predict fraud for a single transaction.
+    Returns: prediction (0=legit,1=fraud) and probability
     """
-    df = pd.DataFrame([transaction_dict])
-    pred = model.predict(df)[0]
-    prob = model.predict_proba(df)[0,1]
+    X = preprocess_inference(transaction_dict)
+    pred = model.predict(X)[0]
+    prob = model.predict_proba(X)[0, 1]
     return pred, prob

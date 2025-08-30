@@ -1,42 +1,38 @@
 import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
+from preprocessing import preprocess_training
+from sklearn.model_selection import train_test_split
 from xgboost import XGBClassifier
+from imblearn.over_sampling import SMOTE
+from sklearn.metrics import classification_report
 import joblib
 
-# Generate synthetic data
-np.random.seed(42)
-n_samples = 1000
+# Load raw data
+df = pd.read_csv("data/creditcard_raw.csv")
 
-# Legitimate transactions
-amount_legit = np.random.normal(50, 30, size=n_samples)
-time_legit = np.random.normal(30000, 10000, size=n_samples)
-y_legit = np.zeros(n_samples)
+# Preprocess
+df = preprocess_training(df)
 
-# Fraudulent transactions (extreme values)
-amount_fraud = np.random.normal(2000, 500, size=50)
-time_fraud = np.random.normal(60000, 5000, size=50)
-y_fraud = np.ones(50)
+# Features & target
+X = df.drop(columns=['Class'])
+y = df['Class']
 
-# Combine
-X = pd.DataFrame({
-    "Amount": np.concatenate([amount_legit, amount_fraud]),
-    "Time": np.concatenate([time_legit, time_fraud])
-})
-y = np.concatenate([y_legit, y_fraud])
+# Train/test split
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, stratify=y, random_state=42
+)
 
-# Scale
-scaler = StandardScaler()
-X_scaled = scaler.fit_transform(X)
+# Handle imbalance
+smote = SMOTE(random_state=42)
+X_train_res, y_train_res = smote.fit_resample(X_train, y_train)
 
-# Train model
-model = XGBClassifier(use_label_encoder=False, eval_metric="logloss", scale_pos_weight=10)
-model.fit(X_scaled, y)
+# Train XGBoost
+model = XGBClassifier(use_label_encoder=False, eval_metric="logloss", random_state=42)
+model.fit(X_train_res, y_train_res)
 
-# Save artifacts
-import os
-os.makedirs("artifacts", exist_ok=True)
-joblib.dump(model, "artifacts/model.pkl")
-joblib.dump(scaler, "artifacts/scaler.pkl")
+# Evaluate
+y_pred = model.predict(X_test)
+print(classification_report(y_test, y_pred))
 
-print("Toy model and scaler saved!")
+# Save model
+joblib.dump(model, "artifacts/fraud_model.pkl")
+print("Model and scaler saved in artifacts/")

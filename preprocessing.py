@@ -1,32 +1,47 @@
-# preprocessing.py
-import joblib
+import pandas as pd
 import numpy as np
-import boto3
+from sklearn.preprocessing import StandardScaler
+import joblib
 import os
 
-BUCKET = "ml-rvce-us-east-1"
-SCALER_KEY = "fraud-detection/models/scaler.pkl"
-LOCAL_SCALER_PATH = "artifacts/scaler.pkl"
+ARTIFACT_DIR = "artifacts"
+os.makedirs(ARTIFACT_DIR, exist_ok=True)
 
-s3 = boto3.client("s3")
+SCALER_PATH = os.path.join(ARTIFACT_DIR, "scaler.pkl")
 
-def get_scaler():
-    os.makedirs("artifacts", exist_ok=True)
-    if not os.path.exists(LOCAL_SCALER_PATH):
-        s3.download_file(BUCKET, SCALER_KEY, LOCAL_SCALER_PATH)
-    scaler = joblib.load(LOCAL_SCALER_PATH)
-    return scaler
-'''
-def preprocess_inference(transaction: dict):
-    # Convert dict -> array
-    features = np.array([[transaction["Time"], transaction["Amount"]]])
-    scaler = get_scaler()
-    features_scaled = scaler.transform(features)
-    return features_scaled
-'''
+def preprocess_training(df):
+    """
+    Preprocess raw CSV:
+    - Scale 'Amount' and 'Time'
+    - Feature engineering (hour of day, ratios)
+    """
+    # Scale 'Amount' and 'Time'
+    scaler = StandardScaler()
+    df[['Amount', 'Time']] = scaler.fit_transform(df[['Amount', 'Time']])
+    
+    # Feature engineering: example
+    df['Hour'] = (df['Time'] // 3600) % 24
+    df['MeanAmountByHour'] = df.groupby('Hour')['Amount'].transform('mean')
+    df['Amount_vs_HourlyMean'] = df['Amount'] / (df['MeanAmountByHour'] + 1e-6)
+
+    # Save scaler
+    joblib.dump(scaler, SCALER_PATH)
+
+    return df
 
 def preprocess_inference(transaction):
-    scaler = joblib.load(LOCAL_SCALER_PATH = "artifacts/scaler.pkl")
-    features = np.array([[transaction["Time"], transaction["Amount"]]])
-    features_scaled = scaler.transform(features)
-    return features_scaled
+    """
+    Preprocess a single transaction for prediction
+    transaction: dict {'Amount': ..., 'Time': ...}
+    """
+    scaler = joblib.load(SCALER_PATH)
+    df = pd.DataFrame([transaction])
+    df[['Amount', 'Time']] = scaler.transform(df[['Amount', 'Time']])
+    
+    # Feature engineering same as training
+    df['Hour'] = (df['Time'] // 3600) % 24
+    # Use hourly mean from training if available, else 0
+    df['MeanAmountByHour'] = 0
+    df['Amount_vs_HourlyMean'] = df['Amount']
+    
+    return df
