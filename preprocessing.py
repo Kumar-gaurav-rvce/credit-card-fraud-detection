@@ -1,5 +1,6 @@
 import pandas as pd
 import joblib
+import numpy as np
 
 SCALER_PATH = "artifacts/scaler.pkl"
 
@@ -8,16 +9,17 @@ def preprocess_inference(transaction_input):
     Accepts:
         - dict (single transaction)
         - list of dicts
-        - pandas DataFrame
-    Returns: 2D numpy array (n_samples, n_features)
+        - pandas DataFrame (from CSV upload)
+    Returns:
+        2D numpy array: shape (n_samples, n_features)
     """
     # Convert input to DataFrame
     if isinstance(transaction_input, dict):
-        df = pd.DataFrame([transaction_input])
+        df = pd.DataFrame([transaction_input])  # single row
     elif isinstance(transaction_input, list):
-        df = pd.DataFrame(transaction_input)
+        df = pd.DataFrame(transaction_input)    # multiple rows
     elif isinstance(transaction_input, pd.DataFrame):
-        df = transaction_input.copy()
+        df = transaction_input.copy()          # already DataFrame
     else:
         raise ValueError("Input must be dict, list of dicts, or DataFrame")
 
@@ -25,15 +27,15 @@ def preprocess_inference(transaction_input):
     scaler = joblib.load(SCALER_PATH)
 
     # Ensure columns match scaler's feature names
-    feature_cols = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else df.columns
+    feature_cols = getattr(scaler, "feature_names_in_", df.columns)
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0
+            df[col] = 0  # fill missing features
 
     df = df[feature_cols].fillna(0)
 
-    # Convert to 2D array
-    X = df.values
-    if X.ndim != 2:
-        X = X.reshape(df.shape[0], len(feature_cols))
+    # Convert to 2D numpy array
+    X = df.to_numpy()
+    if X.ndim == 1:
+        X = X.reshape(1, -1)  # single row
     return X

@@ -6,9 +6,10 @@ from preprocessing import preprocess_inference
 MODEL_PATH = "artifacts/model.pkl"
 model = joblib.load(MODEL_PATH)
 
-st.title("Fraud Detection App")
+st.title("Fraud Detection App (S3-powered)")
+st.write("Upload a CSV file with transactions to predict fraud.")
 
-uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
+uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     st.write("Uploaded Data", df)
@@ -19,8 +20,8 @@ if uploaded_file is not None:
         probs = model.predict_proba(X)[:, 1]
 
         results = df.copy()
-        results['Prediction'] = preds
-        results['Fraud_Prob'] = probs
+        results["Prediction"] = preds
+        results["Fraud_Prob"] = probs
         st.write("Prediction Results", results)
     except Exception as e:
         st.error(f"Error during prediction: {e}")
