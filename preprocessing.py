@@ -1,3 +1,4 @@
+# preprocessing.py
 import pandas as pd
 import joblib
 import numpy as np
@@ -31,11 +32,14 @@ def preprocess_inference(transaction_input):
     for col in feature_cols:
         if col not in df.columns:
             df[col] = 0  # fill missing features
-
     df = df[feature_cols].fillna(0)
 
     # Convert to 2D numpy array
     X = df.to_numpy()
+    # Ensure shape is exactly 2D (n_samples, n_features)
     if X.ndim == 1:
         X = X.reshape(1, -1)  # single row
+    elif X.ndim > 2:
+        X = X.reshape(X.shape[0], -1)  # flatten extra dimensions
+
     return X
