@@ -15,7 +15,7 @@ if uploaded_file is not None:
     st.write("Uploaded Data", df)
 
     try:
-        # Directly pass DataFrame
+        # Pass DataFrame directly, do NOT wrap in list
         preds, probs = predict_transaction(df)
 
         results = df.copy()
@@ -24,4 +24,5 @@ if uploaded_file is not None:
         st.write("Prediction Results", results)
     except Exception as e:
         st.error(f"Error during prediction: {e}")
+
 

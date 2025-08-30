@@ -27,7 +27,7 @@ def preprocess_inference(transaction_input):
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Make sure DataFrame has all features expected by the scaler
+    # Ensure DataFrame has all features expected by the scaler
     feature_cols = getattr(scaler, "feature_names_in_", df.columns)
     for col in feature_cols:
         if col not in df.columns:
@@ -37,7 +37,12 @@ def preprocess_inference(transaction_input):
 
     # Convert to 2D array
     X = df.to_numpy()
-    # If somehow it ends up 3D, squeeze it
+    
+    # Ensure exactly 2D
     if X.ndim > 2:
-        X = np.squeeze(X, axis=0)
+        # This happens if df was accidentally nested
+        X = X.reshape(X.shape[1], X.shape[2])
+    elif X.ndim == 1:
+        X = X.reshape(1, -1)
+    
     return X
