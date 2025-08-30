@@ -29,28 +29,31 @@ def preprocess_inference(transaction_input):
     - pandas DataFrame directly (from CSV upload)
     - dict (single transaction)
     - list of dicts
-    Returns: 2D numpy array
+    Returns: 2D numpy array (n_samples, n_features)
     """
     # Convert input to DataFrame
     if isinstance(transaction_input, dict):
-        df = pd.DataFrame([transaction_input])
+        df = pd.DataFrame([transaction_input])  # single row
     elif isinstance(transaction_input, list):
-        df = pd.DataFrame(transaction_input)
+        df = pd.DataFrame(transaction_input)    # multiple rows
     elif isinstance(transaction_input, pd.DataFrame):
-        df = transaction_input.copy()
+        df = transaction_input.copy()          # CSV upload
     else:
         raise ValueError("Input must be dict, list of dicts, or DataFrame")
 
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Ensure columns match scaler's feature names
+    # Ensure DataFrame columns match the scaler's features
     feature_cols = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else df.columns
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0  # fill missing features with zeros
+            df[col] = 0  # fill missing columns with zeros
 
     df = df[feature_cols].fillna(0)
 
-    # Make sure to return 2D array: (n_samples, n_features)
-    return df.values
+    # Ensure output is 2D: (n_samples, n_features)
+    X = df.to_numpy()
+    if X.ndim == 1:
+        X = X.reshape(1, -1)
+    return X
