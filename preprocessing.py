@@ -1,6 +1,7 @@
 # preprocessing.py
 import pandas as pd
 import joblib
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 SCALER_PATH = "artifacts/scaler.pkl"
@@ -27,12 +28,21 @@ def preprocess_training(df):
 
     return df
 
-def preprocess_inference(transaction_df):
+def preprocess_inference(transaction):
     """
-    Preprocess a transaction dataframe for inference
-    - transaction_df: pd.DataFrame with same columns as training features
+    Preprocess a transaction for inference
+    - transaction: dict (single transaction) OR pd.DataFrame (multiple rows)
     """
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
-    features_scaled = scaler.transform(transaction_df)
+
+    # Single transaction dict
+    if isinstance(transaction, dict):
+        features = np.array([[transaction["Time"], transaction["Amount"]]])
+    else:
+        # DataFrame with columns matching training features
+        features = transaction.values  # shape (n_samples, n_features)
+
+    # Scale
+    features_scaled = scaler.transform(features)
     return features_scaled
