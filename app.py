@@ -6,7 +6,7 @@ from preprocessing import preprocess_inference
 MODEL_PATH = "artifacts/model.pkl"
 model = joblib.load(MODEL_PATH)
 
-st.title("Fraud Detection App (S3-powered)")
+st.title("Fraud Detection App")
 
 uploaded_file = st.file_uploader("Upload CSV file", type=["csv"])
 if uploaded_file is not None:
@@ -18,7 +18,6 @@ if uploaded_file is not None:
         preds = model.predict(X)
         probs = model.predict_proba(X)[:, 1]
 
-        # Show results
         results = df.copy()
         results['Prediction'] = preds
         results['Fraud_Prob'] = probs

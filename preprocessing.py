@@ -5,7 +5,6 @@ SCALER_PATH = "artifacts/scaler.pkl"
 
 def preprocess_inference(transaction_input):
     """
-    Preprocess transaction(s) for inference.
     Accepts:
         - dict (single transaction)
         - list of dicts
@@ -25,14 +24,16 @@ def preprocess_inference(transaction_input):
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Ensure feature order matches scaler
+    # Ensure columns match scaler's feature names
     feature_cols = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else df.columns
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0  # fill missing features
+            df[col] = 0
 
     df = df[feature_cols].fillna(0)
 
-    # Convert to 2D numpy array
-    X = df.to_numpy()
+    # Convert to 2D array
+    X = df.values
+    if X.ndim != 2:
+        X = X.reshape(df.shape[0], len(feature_cols))
     return X
