@@ -38,11 +38,14 @@ def preprocess_inference(transaction):
 
     # Single transaction dict
     if isinstance(transaction, dict):
-        features = np.array([[transaction["Time"], transaction["Amount"]]])
+        # Make a 2D array
+        features = [[transaction["Time"], transaction["Amount"]]]
     else:
-        # DataFrame with columns matching training features
-        features = transaction.values  # shape (n_samples, n_features)
+        # Ensure transaction has same columns as training features
+        feature_cols = scaler.feature_names_in_  # requires sklearn >=1.0
+        features = transaction[feature_cols].values
 
     # Scale
     features_scaled = scaler.transform(features)
     return features_scaled
+
