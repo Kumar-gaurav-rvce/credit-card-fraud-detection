@@ -1,4 +1,3 @@
-# app.py
 import streamlit as st
 import pandas as pd
 import joblib
@@ -6,44 +5,41 @@ from preprocessing import preprocess_inference
 
 MODEL_PATH = "artifacts/model.pkl"
 
-st.title("💳 Fraud Detection App (CSV Upload)")
+st.title("Fraud Detection App (S3-powered)")
+st.write("Predict fraud for single or multiple transactions (CSV upload supported)")
 
-st.markdown("""
-Upload a CSV file with credit card transactions.  
-The CSV must include the following columns: **Time, Amount, V1–V28**.  
-The app will predict whether each transaction is **fraudulent** or **legitimate**.
-""")
+# Option 1: Single transaction input
+st.subheader("Single Transaction Input")
+amount = st.number_input("Transaction Amount", min_value=0.0, step=1.0)
+time = st.number_input("Transaction Time (seconds since start)", min_value=0, step=1)
 
-# Upload CSV
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+# Option 2: CSV upload
+st.subheader("Or Upload CSV")
+uploaded_file = st.file_uploader("Upload CSV with same columns as training features", type=["csv"])
 
+# Load model
+model = joblib.load(MODEL_PATH)
+
+# Prepare data
+transactions = None
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
-    st.subheader("Uploaded Data")
-    st.dataframe(df.head())
+    transactions = df
+else:
+    transactions = {"Time": time, "Amount": amount}  # Can add V1-V28 if needed
 
-    # Preprocess
-    X = preprocess_inference(df)
+# Predict
+if st.button("Predict"):
+    try:
+        X = preprocess_inference(transactions)
+        preds = model.predict(X)
+        probs = model.predict_proba(X)[:, 1]
 
-    # Load model
-    model = joblib.load(MODEL_PATH)
-
-    # Predict
-    preds = model.predict(X)
-    probs = model.predict_proba(X)[:, 1]
-
-    # Add predictions to dataframe
-    df["Prediction"] = preds
-    df["Fraud_Probability"] = probs
-
-    st.subheader("Predictions")
-    st.dataframe(df)
-
-    # Option to download predictions
-    csv = df.to_csv(index=False).encode("utf-8")
-    st.download_button(
-        label="Download Predictions as CSV",
-        data=csv,
-        file_name="fraud_predictions.csv",
-        mime="text/csv"
-    )
+        # Display results
+        for i, (pred, prob) in enumerate(zip(preds, probs)):
+            if uploaded_file is not None:
+                st.write(f"Transaction {i+1}: {'Fraudulent' if pred==1 else 'Legitimate'} (prob={prob:.2f})")
+            else:
+                st.write(f"Transaction: {'Fraudulent' if pred==1 else 'Legitimate'} (prob={prob:.2f})")
+    except Exception as e:
+        st.error(f"Error during prediction: {e}")
