@@ -1,30 +1,40 @@
 import streamlit as st
 import pandas as pd
-import joblib
-from preprocessing import preprocess_inference
+from inference import predict_transaction
 
-MODEL_PATH = "artifacts/model.pkl"
-model = joblib.load(MODEL_PATH)
+# ----------------------------------------
+# Streamlit app title and description
+# ----------------------------------------
+st.title("Fraud Detection App")
+st.write("Upload a CSV file containing transactions to predict whether they are fraudulent or legitimate.")
 
-st.title("Fraud Detection App (S3-powered)")
-st.write("Upload a CSV file with transactions to predict fraud.")
-
+# ----------------------------------------
+# File uploader widget
+# ----------------------------------------
 uploaded_file = st.file_uploader("Upload CSV", type=["csv"])
+
+# Only run if a file has been uploaded
 if uploaded_file is not None:
+    # Read CSV into a pandas DataFrame
     df = pd.read_csv(uploaded_file)
-    st.write("Uploaded Data", df)
+    st.write("Uploaded Data", df)  # Display the uploaded data
 
     try:
-        # Pass the DataFrame directly without wrapping in a list
-        X = preprocess_inference(df)
-        preds = model.predict(X)
-        probs = model.predict_proba(X)[:, 1]
+        # ----------------------------------------
+        # Predict fraud using the inference module
+        # ----------------------------------------
+        preds, probs = predict_transaction(df)
 
+        # ----------------------------------------
+        # Add predictions to the original DataFrame
+        # ----------------------------------------
         results = df.copy()
-        results["Prediction"] = preds
-        results["Fraud_Prob"] = probs
+        results["Prediction"] = preds       # Predicted class: 0 = Legitimate, 1 = Fraud
+        results["Fraud_Prob"] = probs       # Predicted fraud probability
+
+        # Display the results
         st.write("Prediction Results", results)
 
     except Exception as e:
+        # If something goes wrong, display the error
         st.error(f"Error during prediction: {e}")
-
