@@ -16,10 +16,17 @@ def get_scaler():
         s3.download_file(BUCKET, SCALER_KEY, LOCAL_SCALER_PATH)
     scaler = joblib.load(LOCAL_SCALER_PATH)
     return scaler
-
+'''
 def preprocess_inference(transaction: dict):
     # Convert dict -> array
     features = np.array([[transaction["Time"], transaction["Amount"]]])
     scaler = get_scaler()
+    features_scaled = scaler.transform(features)
+    return features_scaled
+'''
+
+def preprocess_inference(transaction):
+    scaler = joblib.load(LOCAL_SCALER_PATH = "artifacts/scaler.pkl")
+    features = np.array([[transaction["Time"], transaction["Amount"]]])
     features_scaled = scaler.transform(features)
     return features_scaled
