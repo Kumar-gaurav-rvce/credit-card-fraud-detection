@@ -29,22 +29,10 @@ def preprocess_inference(transaction_input):
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Ensure columns match scaler's feature names
-    feature_cols = getattr(scaler, "feature_names_in_", df.columns)
-    for col in feature_cols:
-        if col not in df.columns:
-            df[col] = 0  # fill missing features
-
-    df = df[feature_cols].fillna(0)
+    # Align feature columns exactly with training
+    feature_cols = list(scaler.feature_names_in_)
+    df = df.reindex(columns=feature_cols, fill_value=0)
 
     # Convert to 2D numpy array
     X = df.to_numpy()
-
-    # ✅ Make absolutely sure it's 2D
-    if X.ndim == 1:
-        X = X.reshape(1, -1)
-    elif X.ndim == 3:
-        X = X.reshape(X.shape[1], X.shape[2])  # (1, n_rows, n_features) → (n_rows, n_features)
-
     return X
-
