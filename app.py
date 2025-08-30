@@ -15,14 +15,18 @@ if uploaded_file is not None:
     st.write("Uploaded Data", df)
 
     try:
-        # Pass DataFrame directly, do NOT wrap in list
-        preds, probs = predict_transaction(df)
+        # Pass the DataFrame **directly**, do NOT wrap in a list
+        X = preprocess_inference(df)
+        preds = model.predict(X)
+        probs = model.predict_proba(X)[:, 1]
 
         results = df.copy()
         results["Prediction"] = preds
         results["Fraud_Prob"] = probs
         st.write("Prediction Results", results)
+
     except Exception as e:
         st.error(f"Error during prediction: {e}")
+
 
 
