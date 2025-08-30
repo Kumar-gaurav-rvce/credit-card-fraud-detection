@@ -2,58 +2,34 @@
 import pandas as pd
 import joblib
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 
 SCALER_PATH = "artifacts/scaler.pkl"
 
-def preprocess_training(df):
+def preprocess_inference(transaction):
     """
-    Preprocess the raw dataframe for training:
-    - Fill missing values (if any)
-    - Scale numeric columns
+    transaction: either a dict (single transaction) or a DataFrame with all features
+    Returns a 2D NumPy array suitable for model.predict
     """
-    # Assuming raw CSV has 'Time', 'Amount', 'V1'..'V28', 'Class'
-    feature_cols = [c for c in df.columns if c != 'Class']
+    scaler = joblib.load(SCALER_PATH)
 
-    # Fill missing values
-    df[feature_cols] = df[feature_cols].fillna(0)
+    # If transaction is a dict, convert to DataFrame
+    if isinstance(transaction, dict):
+        transaction_df = pd.DataFrame([transaction])
+    elif isinstance(transaction, pd.DataFrame):
+        transaction_df = transaction.copy()
+    else:
+        raise ValueError("transaction must be dict or pd.DataFrame")
 
-    # Scale features
-    scaler = StandardScaler()
-    df[feature_cols] = scaler.fit_transform(df[feature_cols])
-
-    # Save scaler for inference
-    joblib.dump(scaler, SCALER_PATH)
-    print("Scaler saved to", SCALER_PATH)
-
-    return df
-
-def preprocess_inference(transaction_df):
-    """
-    Preprocess a transaction DataFrame or dict for inference.
-    Returns a 2D NumPy array suitable for model.predict.
-    """
-
-    scaler = joblib.load("artifacts/scaler.pkl")
-    
-    # Convert dict to DataFrame if needed
-    if isinstance(transaction_df, dict):
-        transaction_df = pd.DataFrame([transaction_df])
-
-    # Ensure columns match scaler's training columns
-    expected_cols = scaler.feature_names_in_  # sklearn stores feature names in 1.0+
+    # Ensure all columns match scaler's expected features
+    expected_cols = scaler.feature_names_in_
     missing_cols = set(expected_cols) - set(transaction_df.columns)
-    if missing_cols:
-        # Fill missing columns with zeros
-        for col in missing_cols:
-            transaction_df[col] = 0
+    for col in missing_cols:
+        transaction_df[col] = 0  # fill missing columns with 0
 
-    # Reorder columns to match training
+    # Reorder columns
     transaction_df = transaction_df[expected_cols]
 
-    # Scale features
+    # Scale
     features_scaled = scaler.transform(transaction_df)
 
-    return features_scaled  # 2D array, ready for model.predict
-
-
+    return features_scaled  # always 2D
