@@ -12,14 +12,11 @@ def preprocess_training(df):
     """
     feature_cols = [c for c in df.columns if c != 'Class']
 
-    # Fill missing values
     df[feature_cols] = df[feature_cols].fillna(0)
 
-    # Scale features
     scaler = StandardScaler()
     df[feature_cols] = scaler.fit_transform(df[feature_cols])
 
-    # Save scaler
     joblib.dump(scaler, SCALER_PATH)
     print("Scaler saved to", SCALER_PATH)
 
@@ -29,12 +26,12 @@ def preprocess_inference(transaction_input):
     """
     Preprocess transaction(s) for inference.
     Accepts:
-    - dict: single transaction
+    - pandas DataFrame directly (from CSV upload)
+    - dict (single transaction)
     - list of dicts
-    - pandas DataFrame
-    Returns: scaled numpy array
+    Returns: 2D numpy array
     """
-    # Convert to DataFrame if input is dict or list
+    # Convert input to DataFrame
     if isinstance(transaction_input, dict):
         df = pd.DataFrame([transaction_input])
     elif isinstance(transaction_input, list):
@@ -47,12 +44,13 @@ def preprocess_inference(transaction_input):
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Ensure all scaler features are present
+    # Ensure columns match scaler's feature names
     feature_cols = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else df.columns
     for col in feature_cols:
         if col not in df.columns:
-            df[col] = 0  # fill missing columns with zeros
+            df[col] = 0  # fill missing features with zeros
 
     df = df[feature_cols].fillna(0)
 
-    return scaler.transform(df)
+    # Make sure to return 2D array: (n_samples, n_features)
+    return df.values
