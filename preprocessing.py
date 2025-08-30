@@ -15,6 +15,10 @@ def preprocess_inference(transaction_input):
     else:
         raise ValueError("Input must be dict, list of dicts, or DataFrame")
 
+     # Drop target if present
+    if 'Class' in df.columns:
+        df = df.drop(columns=['Class'])
+        
     scaler = joblib.load(SCALER_PATH)
 
     feature_cols = getattr(scaler, "feature_names_in_", df.columns)
