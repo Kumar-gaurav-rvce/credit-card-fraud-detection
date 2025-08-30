@@ -1,15 +1,13 @@
-# preprocessing.py
 import pandas as pd
 import joblib
 from sklearn.preprocessing import StandardScaler
-import os
 
 SCALER_PATH = "artifacts/scaler.pkl"
 
 def preprocess_training(df):
     """
     Preprocess the raw dataframe for training:
-    - Fill missing values (if any)
+    - Fill missing values
     - Scale numeric columns
     """
     feature_cols = [c for c in df.columns if c != 'Class']
@@ -21,37 +19,40 @@ def preprocess_training(df):
     scaler = StandardScaler()
     df[feature_cols] = scaler.fit_transform(df[feature_cols])
 
-    # Save scaler for inference
-    os.makedirs("artifacts", exist_ok=True)
+    # Save scaler
     joblib.dump(scaler, SCALER_PATH)
     print("Scaler saved to", SCALER_PATH)
 
     return df
 
-def preprocess_inference(transaction_df):
+def preprocess_inference(transaction_input):
     """
-    Preprocess a transaction dataframe for inference
-    - Handles missing columns by filling with 0
-    - Ensures correct column order
+    Preprocess transaction(s) for inference.
+    Accepts:
+    - dict: single transaction
+    - list of dicts
+    - pandas DataFrame
+    Returns: scaled numpy array
     """
+    # Convert to DataFrame if input is dict or list
+    if isinstance(transaction_input, dict):
+        df = pd.DataFrame([transaction_input])
+    elif isinstance(transaction_input, list):
+        df = pd.DataFrame(transaction_input)
+    elif isinstance(transaction_input, pd.DataFrame):
+        df = transaction_input.copy()
+    else:
+        raise ValueError("Input must be dict, list of dicts, or DataFrame")
+
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
-    # Get training feature order from scaler
-    feature_cols = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else transaction_df.columns
-
-    # Ensure all training features exist in transaction_df
+    # Ensure all scaler features are present
+    feature_cols = scaler.feature_names_in_ if hasattr(scaler, "feature_names_in_") else df.columns
     for col in feature_cols:
-        if col not in transaction_df.columns:
-            transaction_df[col] = 0  # fill missing columns with 0
+        if col not in df.columns:
+            df[col] = 0  # fill missing columns with zeros
 
-    # Reorder columns to match training
-    transaction_df = transaction_df[feature_cols]
+    df = df[feature_cols].fillna(0)
 
-    # Fill any remaining NaNs
-    transaction_df = transaction_df.fillna(0)
-
-    # Scale
-    features_scaled = scaler.transform(transaction_df)
-
-    return features_scaled
+    return scaler.transform(df)
