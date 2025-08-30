@@ -1,47 +1,38 @@
-import pandas as pd
-import numpy as np
-from sklearn.preprocessing import StandardScaler
 import joblib
+import numpy as np
 import os
+import boto3
+import pandas as pd
 
-ARTIFACT_DIR = "artifacts"
-os.makedirs(ARTIFACT_DIR, exist_ok=True)
+BUCKET = "ml-rvce-us-east-1"
+SCALER_KEY = "fraud-detection/models/scaler.pkl"
+LOCAL_SCALER_PATH = "artifacts/scaler.pkl"
 
-SCALER_PATH = os.path.join(ARTIFACT_DIR, "scaler.pkl")
+s3 = boto3.client("s3")
 
-def preprocess_training(df):
-    """
-    Preprocess raw CSV:
-    - Scale 'Amount' and 'Time'
-    - Feature engineering (hour of day, ratios)
-    """
-    # Scale 'Amount' and 'Time'
-    scaler = StandardScaler()
-    df[['Amount', 'Time']] = scaler.fit_transform(df[['Amount', 'Time']])
-    
-    # Feature engineering: example
-    df['Hour'] = (df['Time'] // 3600) % 24
-    df['MeanAmountByHour'] = df.groupby('Hour')['Amount'].transform('mean')
-    df['Amount_vs_HourlyMean'] = df['Amount'] / (df['MeanAmountByHour'] + 1e-6)
-
-    # Save scaler
-    joblib.dump(scaler, SCALER_PATH)
-
-    return df
+def get_scaler():
+    os.makedirs("artifacts", exist_ok=True)
+    if not os.path.exists(LOCAL_SCALER_PATH):
+        s3.download_file(BUCKET, SCALER_KEY, LOCAL_SCALER_PATH)
+    scaler = joblib.load(LOCAL_SCALER_PATH)
+    return scaler
 
 def preprocess_inference(transaction):
     """
-    Preprocess a single transaction for prediction
-    transaction: dict {'Amount': ..., 'Time': ...}
+    transaction: dict with keys 'Time' and 'Amount'
+    Returns: numpy array with shape (1, 30) matching training features
     """
-    scaler = joblib.load(SCALER_PATH)
-    df = pd.DataFrame([transaction])
-    df[['Amount', 'Time']] = scaler.transform(df[['Amount', 'Time']])
-    
-    # Feature engineering same as training
-    df['Hour'] = (df['Time'] // 3600) % 24
-    # Use hourly mean from training if available, else 0
-    df['MeanAmountByHour'] = 0
-    df['Amount_vs_HourlyMean'] = df['Amount']
-    
-    return df
+    # Fill missing features (V1-V28) with zeros or median values
+    v_features = {f"V{i}": 0.0 for i in range(1, 29)}
+
+    # Combine Time + Amount + V1-V28
+    all_features = {"Time": transaction["Time"], "Amount": transaction["Amount"], **v_features}
+
+    # Order features exactly as during training: V1–V28, Time, Amount
+    feature_order = [f"V{i}" for i in range(1, 29)] + ["Time", "Amount"]
+    X = np.array([[all_features[f] for f in feature_order]])
+
+    # Scale
+    scaler = get_scaler()
+    X_scaled = scaler.transform(X)
+    return X_scaled
